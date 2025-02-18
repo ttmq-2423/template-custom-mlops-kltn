@@ -42,12 +42,12 @@ Parameters:
 
   ProductSupportURLParameter:
     Type: String
-    Default: 'https://github.com/ttmq-2423/sagemaker-custom-project-templates'
+    Default: 'https://github.com/ttmq-2423/template-custom-mlops-kltn.git'
     Description: The support url of this product within the portfolio.
 
   SageMakerProjectRepoZipParameter:
     Type: String
-    Default: 'https://github.com/ttmq-2423/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
+    Default: 'https://github.com/ttmq-2423/template-custom-mlops-kltn/archive/refs/heads/main.zip'
     Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
 
   SageMakerProjectRepoNameBranchParameter:
