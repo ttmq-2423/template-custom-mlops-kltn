@@ -52,7 +52,7 @@ Parameters:
 
   SageMakerProjectRepoNameBranchParameter:
     Type: String
-    Default: 'sagemaker-custom-project-templates-main'
+    Default: 'template-custom-mlops-kltn-main'
     Description: 'Name/Branch of the SageMaker Projects Examples GitHub Repo'
   
   SageMakerProjectsProjectNameParameter:
