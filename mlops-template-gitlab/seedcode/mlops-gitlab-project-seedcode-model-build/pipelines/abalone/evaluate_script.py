@@ -3,10 +3,13 @@ import os
 import subprocess
 import shutil
 import tarfile
+# import boto3
 
+# os.chdir('..')
 # Get the source code directory
-source_dir = '/opt/ml/input/data/code'  
+source_dir = '/opt/ml/processing/code'  
 destination_dir = '/opt/ml/code'  # Destination directory
+os.chdir(destination_dir)
 
 # Check if the destination directory exists, and create it if it doesn't
 if not os.path.exists(destination_dir):
@@ -36,22 +39,24 @@ for root, dirs, files in os.walk(source_dir):
 
 
 # Path to save model artifacts
-model_output_dir = '/opt/ml/model' # use this dir to store model artifacts
+model_output_dir = '/opt/ml/processing/evaluation' # use this dir to store model artifacts
 
 # Run the evaluation script
 result = subprocess.run([
-    "python", "evaluate.py",
-    "--batch_size", "8",
+    "python", "evaluate.py",  # Sử dụng đường dẫn tuyệt đối
     "--finetune", "Pretrain_densenet121.pth",
     "--model", "densenet121",
-    "--data_path", "/opt/ml/input/data/training/",
+    "--data_path", "data/CheXpert-v1.0/",  # Giữ đường dẫn tương đối
     "--num_workers", "11",
-    "--test_list", "/opt/ml/input/data/training/test1.csv",
+    "--train_list", "data/CheXpert-v1.0/train.csv", # Giữ đường dẫn tương đối
+    "--val_list", "data/CheXpert-v1.0/test1.csv", # Giữ đường dẫn tương đối
+    "--test_list", "data/CheXpert-v1.0/test1.csv", # Giữ đường dẫn tương đối
     "--nb_classes", "5",
     "--eval_interval", "10",
     "--dataset", "chexpert",
     "--aa", "rand-m6-mstd0.5-inc1",
-    "--device", "cpu"
+    "--device", "cpu",
+    "--batch_size", "8"
 ], capture_output=True, text=True, check=True)
 
 # Capture the output from evaluate.py and save into result.txt
@@ -77,6 +82,16 @@ report_dict = {
              }
     }
 }
+
+#s3_bucket = "evaluate-output"
+#s3_key = "output/evaluation.json"
+
+# Upload data to S3
+# s3 = boto3.client("s3")
+
+#with open(model_path, "rb") as f:
+#    s3.upload_fileobj(f, s3_bucket, s3_key)
+    
 
 # Write the report to a file, in the model_output_dir
 with open(os.path.join(model_output_dir, "evaluation.json"), "w") as f:
