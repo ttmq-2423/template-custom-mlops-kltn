@@ -147,11 +147,18 @@ def get_pipeline(
         left= auc_threshold,
         right= JsonGet(step=step_evaluate, property_file=evaluation_report, json_path="regression_metrics.auc.value"),
     )
+    
 
-
-
+    
 # Tạo model từ model artifacts
-
+    model_metrics = ModelMetrics(
+        model_statistics=MetricsSource(
+            s3_uri=step_evaluate.properties.ProcessingOutputConfig.Outputs["evaluation"].S3Output.S3Uri,
+            content_type="application/json"
+            )
+    )
+    
+    
     register_model_step = RegisterModel(
         name="RegisterModelStep",
         model=Model(
@@ -166,10 +173,11 @@ def get_pipeline(
         transform_instances=["ml.m5.large"],
         model_package_group_name=model_package_group_name,
         approval_status=model_approval_status,
+        model_metrics=model_metrics,
     )
 
     step_register_condition = ConditionStep(name="CheckModelQuality", conditions=[condition], if_steps=[register_model_step], else_steps=[], depends_on=[step_evaluate])
-
+    
 
     
 
