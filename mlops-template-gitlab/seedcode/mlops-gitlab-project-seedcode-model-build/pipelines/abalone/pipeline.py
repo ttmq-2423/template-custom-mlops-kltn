@@ -78,22 +78,10 @@ def get_pipeline(
     input_data_url = ParameterString(name="InputDataUrl", default_value="s3://mqht/medical_mae_mixi/")
     train_image_uri = ParameterString(name="TrainImageUri", default_value="600627364468.dkr.ecr.us-east-1.amazonaws.com/mq/train_image:latest")
     processing_image_uri = ParameterString(name="ProcessingImageUri", default_value="600627364468.dkr.ecr.us-east-1.amazonaws.com/mq/processing:latest")
-    evaluate_image_uri = ParameterString(name="EvaluateImageUri", default_value="600627364468.dkr.ecr.us-east-1.amazonaws.com/evaluate:latest")
+    evaluate_image_uri = ParameterString(name="EvaluateImageUri", default_value="600627364468.dkr.ecr.us-east-1.amazonaws.com/mq/train_image:latest")
     model_approval_status = ParameterString(name="ModelApprovalStatus", default_value="PendingManualApproval")
     auc_threshold = ParameterFloat(name='AucThreshold', default_value=0.5)
 
-    script_processor = ScriptProcessor(
-        role=role,
-        image_uri=processing_image_uri,
-        command=["python3"],
-        instance_count=1,
-        instance_type=processing_instance_type,
-        sagemaker_session=sagemaker_session,
-        base_job_name=f"{base_job_prefix}/preprocess-medical-mae",
-    )
-    input_data = ProcessingInput(source=input_data_url, destination="/opt/ml/processing/input", input_name="input-data")
-    output_data = ProcessingOutput(source="/opt/ml/processing/output", destination=f"s3://{default_bucket}/data_train", output_name="output-data")
-    step_process = ProcessingStep(name="PreprocessStep", processor=script_processor, inputs=[input_data], outputs=[output_data], code="pipelines/abalone/preprocess_script.py")
 
     estimator = PyTorch(
         entry_point="pipelines/abalone/train_script.py",
@@ -104,15 +92,15 @@ def get_pipeline(
         image_uri=train_image_uri,
         script_mode=True,
         region=region,
-        output_path=f"s3://{default_bucket}/output/train",
-        model_output_path=f"s3://{default_bucket}/model",
+        output_path=f"s3://{default_bucket}/output/train/logs",
+        model_output_path=f"s3://{default_bucket}/output/train/models",
         sagemaker_session=sagemaker_session,
         base_job_name=f"{base_job_prefix}/train-medical-mae",
     )
-    train_input_data = TrainingInput(s3_data=f"s3://{default_bucket}/data_train")
+    #train_input_data = TrainingInput(s3_data=f"s3://{default_bucket}/data_train")
     source_data = TrainingInput(s3_data=input_data_url)
-    step_train = TrainingStep(name="TrainModelStep", estimator=estimator, inputs={"training": train_input_data, "code": source_data})
-    step_train.add_depends_on([step_process])
+    step_train = TrainingStep(name="TrainModelStep", estimator=estimator, inputs={"code": source_data})
+    #step_train.add_depends_on([step_process])
 
     evaluation_processor = ScriptProcessor(
         role=role,
@@ -145,7 +133,7 @@ def get_pipeline(
 
     condition = ConditionLessThanOrEqualTo(
         left= auc_threshold,
-        right= JsonGet(step=step_evaluate, property_file=evaluation_report, json_path="regression_metrics.auc.value"),
+        right= JsonGet(step=step_evaluate, property_file=evaluation_report, json_path="metrics.auc_avg.value"),
     )
     
 
@@ -193,7 +181,7 @@ def get_pipeline(
             model_approval_status,
             auc_threshold,
         ],
-        steps=[step_process, step_train, step_evaluate, step_register_condition],
+        steps=[step_train, step_evaluate, step_register_condition],
         sagemaker_session=sagemaker_session,
     )
     return pipeline
