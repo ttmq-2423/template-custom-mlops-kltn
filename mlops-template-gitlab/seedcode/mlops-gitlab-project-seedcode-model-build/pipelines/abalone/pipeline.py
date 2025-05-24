@@ -2,11 +2,22 @@
 
 Implements a get_pipeline(**kwargs) method.ddddddg
 """
+
+
+
 import os
 
 import boto3
 import sagemaker
 import sagemaker.session
+
+from sagemaker.workflow.functions import Join
+from sagemaker.model_card import (
+    ModelCard,
+    ModelOverview,
+    Graphics
+)
+
 
 from sagemaker.estimator import Estimator
 from sagemaker.inputs import TrainingInput
@@ -136,15 +147,46 @@ def get_pipeline(
         right= JsonGet(step=step_evaluate, property_file=evaluation_report, json_path="metrics.auc_avg.value"),
     )
     
+    evaluation_output_s3_uri = step_evaluate.properties.ProcessingOutputConfig.Outputs["evaluation"].S3Output.S3Uri
+
+    evaluation_json_s3_uri = Join(
+        on="/",
+        values=[evaluation_output_s3_uri, "evaluation.json"]
+    )
+
+    confusion_matrix_s3_uri = Join(
+    on="/",
+    values=[evaluation_output_s3_uri, "confusion_matrix_conv_vit.png"]
+    )
+
+    roc_curve_s3_uri = Join(
+        on="/",
+        values=[evaluation_output_s3_uri, "ROC_curves_conv_vit_improved.png"]
+    )
 
     
 # Tạo model từ model artifacts
     model_metrics = ModelMetrics(
         model_statistics=MetricsSource(
-            s3_uri=step_evaluate.properties.ProcessingOutputConfig.Outputs["evaluation"].S3Output.S3Uri,
+            s3_uri=evaluation_json_s3_uri,
             content_type="application/json"
-            )
+            ),
+        explainability=MetricsSource(
+            s3_uri=confusion_matrix_s3_uri,
+            content_type="image/png"
+        )
     )
+
+    model_card = ModelCard(
+    name='MyModelCard',
+    model_overview=ModelOverview(
+        graphics=Graphics(
+            confusion_matrix=confusion_matrix_s3_uri,
+            roc_curve=roc_curve_s3_uri
+        
+        )
+    )
+)
     
     
     register_model_step = RegisterModel(
