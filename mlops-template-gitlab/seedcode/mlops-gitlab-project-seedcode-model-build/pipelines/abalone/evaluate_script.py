@@ -4,26 +4,42 @@ import subprocess
 import shutil
 import tarfile
 
+model_tar_path = "/opt/ml/processing/model/model.tar.gz"
+extract_dir = "/opt/ml/processing/model"
+
+
+with tarfile.open(model_tar_path) as tar:
+    tar.extractall(path=extract_dir)
+    
+print("File trong model dir:", os.listdir(extract_dir))
+
+
 subprocess.run(['git', 'clone', 'https://github.com/ttmq-2423/medical_mae.git'], check=True)
 os.chdir('medical_mae')
 
 # Run the evaluation script
-result = subprocess.run([
-    "python", "Brute_force.py", 
-    "--batch_size", "8",
-    "--finetune", "opt/ml/processing/model/checkpoint.pth",
-    "--model", "conv_vit",
-    "--data_path", "data/CheXpert-v1.0/",  
-    "--num_workers", "1",
-    "--train_list", "data/CheXpert-v1.0/train.csv", 
-    "--val_list", "data/CheXpert-v1.0/test1.csv", 
-    "--test_list", "data/CheXpert-v1.0/test1.csv", 
-    "--nb_classes", "5",
-    "--dataset", "chexpert",
-    "--aa", "rand-m6-mstd0.5-inc1",
-    "--device", "cpu",
-    "--save", "figure"
-], check=True, capture_output=True, text=True)  # important: capture output as string
+try: 
+    result = subprocess.run([
+        "python", "Brute_force.py", 
+        "--batch_size", "8",
+        "--finetune", "/opt/ml/processing/model/checkpoint.pth",
+        "--model", "conv_vit",
+        "--data_path", "data/CheXpert-v1.0/",  
+        "--num_workers", "1",
+        "--train_list", "data/CheXpert-v1.0/train.csv", 
+        "--val_list", "data/CheXpert-v1.0/test1.csv", 
+        "--test_list", "data/CheXpert-v1.0/test1.csv", 
+        "--nb_classes", "5",
+        "--dataset", "chexpert",
+        "--aa", "rand-m6-mstd0.5-inc1",
+        "--device", "cpu",
+        "--save", "figure"
+    ], check=True, capture_output=True, text=True)  # important: capture output as string
+except subprocess.CalledProcessError as e:
+    print("Command failed:")
+    print("STDOUT:\n", e.stdout)
+    print("STDERR:\n", e.stderr)
+    raise
 
 destination_dir = '/opt/ml/processing/evaluation' 
 os.makedirs(destination_dir, exist_ok=True)
@@ -57,17 +73,35 @@ for line in result.stdout.splitlines():
 print(f"Extracted AUC avg: {auc_avg}")
 print(f"Extracted AUC per label: {auc_per_label}")
 
-# Create report
+
+class_names = ['Cardiomegaly', 'Edema', 'Consolidation', 'Atelectasis', 'Pleural Effusion']
+
 report_dict = {
     "metrics": {
         "auc_avg": {
-            "value": auc_avg
-        },
-        "auc_per_label": {
-            "value": auc_per_label
+            "value": float(auc_avg)
         }
-    }
+    },
+    "visualizations": [
+        {
+            "name": "confusion_matrix",
+            "value": "confusion_matrix_conv_vit.png",
+            "content_type": "image/png"
+        },
+        {
+            "name": "roc_curve", 
+            "value": "ROC_curves_conv_vit_improved.png",
+            "content_type": "image/png"
+        }
+    ]
 }
+
+for i, auc in enumerate(auc_per_label):
+    report_dict["metrics"][f"auc_{class_names[i].replace(' ', '_').lower()}"] = {
+        "value": float(auc)
+    }
+
+
 
 # Write to JSON
 with open(os.path.join(destination_dir, "evaluation.json"), "w") as f:
