@@ -12,11 +12,7 @@ import sagemaker
 import sagemaker.session
 
 from sagemaker.workflow.functions import Join
-from sagemaker.model_card import (
-    ModelCard,
-    ModelOverview,
-    Graphics
-)
+
 
 
 from sagemaker.estimator import Estimator
@@ -177,16 +173,8 @@ def get_pipeline(
         )
     )
 
-    model_card = ModelCard(
-    name='MyModelCard',
-    model_overview=ModelOverview(
-        graphics=Graphics(
-            confusion_matrix=confusion_matrix_s3_uri,
-            roc_curve=roc_curve_s3_uri
-        
-        )
-    )
-)
+ 
+
     
     
     register_model_step = RegisterModel(
@@ -195,7 +183,9 @@ def get_pipeline(
             image_uri="600627364468.dkr.ecr.us-east-1.amazonaws.com/mq/inference:latest",
             model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,  # Đợi train xong mới có giá trị
             role=role,
-            sagemaker_session=sagemaker_session
+            sagemaker_session=sagemaker_session,
+            env={
+            "EVALUATION_JSON_S3_URI": evaluation_json_s3_uri }
         ),
         content_types=["application/json"],
         response_types=["application/json"],
