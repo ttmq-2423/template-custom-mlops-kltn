@@ -69,9 +69,17 @@ for line in result.stdout.splitlines():
             auc_per_label = [float(x.strip()) for x in label_str.split(",")]
         except Exception as e:
             print(f"Error parsing AUC per label: {e}")
+    elif "Optimal thresholds per class:" in line:
+        try:
+            thresh_str = line.split("Optimal thresholds per class:")[1].strip().strip("[]")
+            optimal_thresholds = [float(x.strip()) for x in thresh_str.split(",")]
+        except Exception as e:
+            print(f"Error parsing optimal thresholds: {e}")
 
 print(f"Extracted AUC avg: {auc_avg}")
 print(f"Extracted AUC per label: {auc_per_label}")
+print(f"Extracted Optimal thresholds: {optimal_thresholds}")
+
 
 
 class_names = ['Cardiomegaly', 'Edema', 'Consolidation', 'Atelectasis', 'Pleural Effusion']
@@ -101,7 +109,11 @@ for i, auc in enumerate(auc_per_label):
         "value": float(auc)
     }
 
-
+for i, thresh in enumerate(optimal_thresholds):
+    class_name_key = class_names[i].replace(" ", "_").lower()
+    report_dict["metrics"][f"optimal_threshold_{class_name_key}"] = {
+        "value": float(thresh)
+    }
 
 # Write to JSON
 with open(os.path.join(destination_dir, "evaluation.json"), "w") as f:
