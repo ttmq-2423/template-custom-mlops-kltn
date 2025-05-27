@@ -1,6 +1,6 @@
 """Example workflow pipeline script for medical_mae pipeline.
 
-Implements a get_pipeline(**kwargs) method.ddddddg
+Implements a get_pipeline(**kwargs) method
 """
 
 
