@@ -12,7 +12,7 @@ with open("README.md", "r") as f:
     readme = f.read()
 
 
-required_packages = ["sagemaker==latest"]
+required_packages = ["sagemaker==2.244.2"]
 extras = {
     "test": [
         "black",
