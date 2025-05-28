@@ -87,7 +87,7 @@ def get_pipeline(
     processing_image_uri = ParameterString(name="ProcessingImageUri", default_value="600627364468.dkr.ecr.us-east-1.amazonaws.com/mq/processing:latest")
     evaluate_image_uri = ParameterString(name="EvaluateImageUri", default_value="600627364468.dkr.ecr.us-east-1.amazonaws.com/mq/train_image:latest")
     model_approval_status = ParameterString(name="ModelApprovalStatus", default_value="PendingManualApproval")
-    auc_threshold = ParameterFloat(name='AucThreshold', default_value=0.5)
+    auc_threshold = ParameterFloat(name='AucThreshold', default_value=50)
 
 
     estimator = PyTorch(
