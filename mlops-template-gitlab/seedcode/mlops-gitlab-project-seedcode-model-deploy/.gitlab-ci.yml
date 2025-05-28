@@ -1,4 +1,4 @@
-image: python:latest
+image: python:3.10.13-slim  
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -17,13 +17,14 @@ variables:
 cache:
   paths:
     - .cache/pip
-    - venv/
+    - .venv_tmp/  # cập nhật theo tên mới của virtualenv
 
 before_script:
   - python -V 
   - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
+  - rm -rf .venv_tmp
+  - virtualenv .venv_tmp
+  - source .venv_tmp/bin/activate
   - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30"
 
 stages:          
@@ -70,3 +71,4 @@ production_deploy:
     - echo "Deploying model to SageMaker Endpoint..."
     - python deploy-stack.py --region $AWS_REGION --stack-name gitlab-prd --param-file $EXPORT_TEMPLATE_PROD_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
   when: manual
+
